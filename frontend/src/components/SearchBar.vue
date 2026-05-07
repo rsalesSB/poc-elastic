@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { suggest } from '../api.js';
+import SearchHelpModal from './SearchHelpModal.vue';
 
 const props = defineProps({ modelValue: { type: String, default: '' } });
 const emit = defineEmits(['submit', 'select']);
@@ -10,6 +11,7 @@ const suggestions = ref([]);
 const showDropdown = ref(false);
 const highlightedIndex = ref(-1);
 
+const showHelp = ref(false);
 let debounceTimer = null;
 
 watch(() => props.modelValue, v => { localQuery.value = v; });
@@ -80,6 +82,12 @@ const onBlur = () => {
       <button class="btn-search" @click="onSubmit">Search</button>
     </div>
 
+    <div class="search-actions">
+      <button class="link-help" @click="showHelp = true">ℹ️ Search tips</button>
+    </div>
+
+    <SearchHelpModal :visible="showHelp" @close="showHelp = false" />
+
     <ul v-if="showDropdown && suggestions.length" class="dropdown">
       <li
         v-for="(s, i) in suggestions"
@@ -106,6 +114,27 @@ const onBlur = () => {
 .search-wrap {
   display: flex;
   gap: 0;
+}
+
+.search-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.link-help {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.link-help:hover {
+  color: var(--accent);
 }
 
 input[type="text"] {

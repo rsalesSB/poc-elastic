@@ -1,0 +1,16 @@
+{
+  "name": "poc-elastic-ingestion",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "seed": "node seed.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@elastic/elasticsearch": "^8.13.0",
+    "dotenv": "^16.4.5"
+  }
+}

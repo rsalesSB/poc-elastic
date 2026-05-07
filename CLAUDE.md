@@ -8,7 +8,7 @@ POC to demonstrate full-text search with Elasticsearch. Core use case: given a q
 
 The POC will progressively demonstrate:
 
-- Relevance via `multi_match` with per-field boosts
+- Relevance via `simple_query_string` with per-field boosts and Google-style operators
 - Highlighting of matched snippets
 - Typo tolerance (`fuzziness: AUTO`)
 - Autocomplete via the `completion` field
@@ -62,17 +62,26 @@ docker compose down -v                          # stop and wipe volume (full res
 
 - **Field names in English** (`title`, `genres`, `year`, `release_date`, `vote_average`, `popularity`). Keep consistent across ingestion, backend, and frontend.
 - **Single analyzer `english_analyzer`** chains `english_possessive_stemmer` + `lowercase` + `asciifolding` + English stopwords + English stemmer. Ensures "running cars" matches "car runs" and possessives like "Disney's" are normalized.
-- **Agreed search strategy** (to be implemented in Part 3):
+- **Search strategy — `simple_query_string`** (implemented in Part 3). Preferred over `multi_match` for user-facing input because it gracefully ignores syntax errors instead of failing the whole query. Supports Google-style operators out of the box:
+  - `"exact phrase"` — phrase search
+  - `+term` — term is required
+  - `-term` — exclude documents containing term
+  - `term*` — prefix search
+  - `term~2` — fuzzy match (edit distance 2)
+  - `(group)` — grouping
+  - `a | b` — OR between expressions
   ```json
   {
-    "multi_match": {
-      "query": "<term>",
-      "type": "best_fields",
+    "simple_query_string": {
+      "query": "<user input>",
       "fields": ["title^3", "short_description^2", "content^1"],
-      "fuzziness": "AUTO"
+      "default_operator": "OR"
     }
   }
   ```
+  The `default_operator` switches dynamically: **OR** for broad recall on plain queries, **AND** when the input contains `-` (exclusion), because `OR + MUST_NOT` degenerates in Lucene and exclusions stop working.
+  A secondary `multi_match` with `type: "phrase"` runs in the `should` clause to boost documents where query terms appear adjacent, improving ranking even when the user doesn't quote phrases.
+  - Refs: [ES docs](https://www.elastic.co/docs/reference/query-languages/query-dsl/query-dsl-simple-query-string-query) · [Google search operators](https://support.google.com/websearch/answer/2466433?hl=en)
 - **Multi-fields on `title`**: `text` (search), `keyword` (sort/exact), `completion` (autocomplete).
 - **Never expose Elasticsearch directly to the frontend.** The Express layer in Part 3 acts as a search proxy — better security and a single place to customize query/ranking.
 - **Single-node, 1 shard, 0 replicas.** It's a POC; replication adds no value here.
@@ -89,5 +98,5 @@ docker compose down -v                          # stop and wipe volume (full res
 
 - **Part 1 — Infra + Mapping** ✅ docker-compose, `movies` mapping, and this CLAUDE.md ready.
 - **Part 2 — TMDB ingestion** ✅ `ingestion/seed.js` fetches from TMDB and bulk-indexes via `--reset`. Run with `cd ingestion && npm install && npm run seed -- --reset`.
-- **Part 3 — Express backend** ✅ `backend/` exposes `/search`, `/suggest`, `/movies/:id`, `/health` on port 3000. Search DSL (multi_match, boosts, highlight, aggs) lives in `backend/searchService.js`. Run with `cd backend && npm install && npm start`.
+- **Part 3 — Express backend** ✅ `backend/` exposes `/search`, `/suggest`, `/movies/:id`, `/health` on port 3000. Search DSL (`simple_query_string`, per-field boosts, phrase boost, highlight, aggs) lives in `backend/searchService.js`. Run with `cd backend && npm install && npm start`.
 - **Part 4 — Vue frontend** ✅ `frontend/` is a Vite + Vue 3 SPA on port 5173. Components: `SearchBar` (autocomplete), `FacetSidebar` (genres + rating slider), `MovieGrid`, `MovieCard` (poster + highlighted title/desc + score). Vite proxies `/api/*` to backend. Run with `cd frontend && npm install && npm run dev`.

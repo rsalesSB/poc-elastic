@@ -26,6 +26,10 @@ Open in your browser: **http://localhost:5601**
 
 Go to **Management → Dev Tools** (the wrench icon in the side menu). This is where we'll run queries.
 
+### Kibana tips
+- `http://localhost:5601/app/dev_tools#/console` is the direct URL to Dev Tools.
+- `http://localhost:5601/app/discover` is the Discover tab where you can explore indexed documents with a UI.
+
 ## Step 3 — Create the `movies` index
 
 Open `mappings/movies.json` and paste the entire content into Kibana's Dev Tools. Click the play button (▶).

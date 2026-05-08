@@ -293,7 +293,7 @@ docker compose up -d
 
 # Terminal 2 — load real data
 cd ingestion && cp .env.example .env  # fill TMDB_API_KEY
-npm install && npm run seed -- --reset
+npm install && npm run seed -- --reset --pages=25  # 500 movies indexed
 
 # Terminal 3 — backend
 cd backend && cp .env.example .env

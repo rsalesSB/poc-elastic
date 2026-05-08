@@ -1,4 +1,4 @@
-# Elasticsearch POC — Part 1: Infra + Mapping
+# Elasticsearch POC — Full Stack: Infra · Ingestion · Backend · Frontend
 
 ## Prerequisites
 
@@ -133,11 +133,10 @@ Or in Dev Tools (with relevance + highlight):
 GET /movies/_search
 {
   "query": {
-    "multi_match": {
+    "simple_query_string": {
       "query": "space adventure",
-      "type": "best_fields",
       "fields": ["title^3", "short_description^2", "content^1"],
-      "fuzziness": "AUTO"
+      "default_operator": "OR"
     }
   },
   "highlight": { "fields": { "title": {}, "short_description": {} } }
@@ -226,7 +225,7 @@ Response shape:
 
 ### Design notes
 
-- The query DSL (`multi_match`, boosts, highlight, aggregations) lives in `searchService.js`. Tweaking relevance is a one-file change — the frontend doesn't need to know.
+- The query DSL (`simple_query_string`, boosts, highlight, aggregations) lives in `searchService.js`. Tweaking relevance is a one-file change — the frontend doesn't need to know.
 - `bool.must` carries the relevance clause; `bool.filter` carries `genres` and `minRating` so they don't pollute the `_score`.
 - Highlights wrap matches in `<mark>` (HTML-friendly for the future Vue UI).
 - CORS is enabled wide-open (`cors()`); for production you'd lock it to specific origins.
@@ -251,6 +250,7 @@ Open http://localhost:5173.
 ### What you can demo
 
 - **Search input with debounced autocomplete** (250ms) — type `spi` and the dropdown shows posters from `/suggest`. Arrow keys navigate, Enter selects.
+- **Search tips modal** — click the "ℹ️ Search tips" link below the search bar to open a reference modal documenting all available Google-style operators (`"phrase"`, `+required`, `-exclude`, `term*`, `term~N`, `|`, groups).
 - **Results grid** with poster, title, year, rating badge, genre tags, and `_score` shown next to each card so reviewers can *see* the relevance signal moving.
 - **Highlighted matches** — `<mark>` tags from the backend's `highlight` block are rendered inline in titles and descriptions.
 - **Faceted filters** — genres are checkboxes (counts shown next to each), and rating is a slider. Selecting any filter re-runs the search at offset 0.
@@ -270,7 +270,8 @@ frontend/
     ├── api.js                  # fetch wrappers around /search and /suggest
     ├── App.vue                 # owns query/filters/pagination state
     └── components/
-        ├── SearchBar.vue       # input + autocomplete dropdown
+        ├── SearchBar.vue       # input + autocomplete dropdown + "Search tips" link
+        ├── SearchHelpModal.vue # modal: reference table of search operators
         ├── FacetSidebar.vue    # genre checkboxes + rating slider
         ├── MovieGrid.vue       # results grid container
         └── MovieCard.vue       # poster, highlighted title/desc, score, tags
